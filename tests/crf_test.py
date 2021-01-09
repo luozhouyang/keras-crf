@@ -12,7 +12,8 @@ class CRFTest(unittest.TestCase):
         outputs = tf.keras.layers.Embedding(100, 128)(sequence_input)
         outputs = tf.keras.layers.Dense(256)(outputs)
         crf = CRF(7)
-        outputs = crf(outputs)
+        # mask is important to compute sequence length in CRF
+        outputs = crf(outputs, mask=sequence_mask)
         model = tf.keras.Model(inputs=sequence_input, outputs=outputs)
         model.compile(
             loss=CRFLoss(crf),
