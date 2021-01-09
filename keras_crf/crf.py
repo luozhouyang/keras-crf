@@ -32,9 +32,21 @@ class CRFCategoricalAccuracy(MeanMetricWrapper):
 
 class CRF(tf.keras.layers.Layer):
 
-    def __init__(self, units, **kwargs):
+    def __init__(self,
+                 units,
+                 chain_initializer='orthogonal',
+                 use_boundary=True,
+                 boundary_initializer='zeros',
+                 use_kernel=True,
+                 **kwargs):
         super().__init__(**kwargs)
-        self.crf = tfa.layers.CRF(units, **kwargs)
+        self.crf = tfa.layers.CRF(
+            units,
+            chain_initializer=chain_initializer,
+            use_boundary=use_boundary,
+            boundary_initializer=boundary_initializer,
+            use_kernel=use_kernel,
+            **kwargs)
         self.chain_kernel = self.crf.chain_kernel
         # record sequence length to compute loss
         self.sequence_length = None
