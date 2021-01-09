@@ -1,4 +1,9 @@
 # keras-crf
+
+![Python package](https://github.com/luozhouyang/keras-crf/workflows/Python%20package/badge.svg)
+[![PyPI version](https://badge.fury.io/py/keras-crf.svg)](https://badge.fury.io/py/keras-crf)
+[![Python](https://img.shields.io/pypi/pyversions/keras-crf.svg?style=plastic)](https://badge.fury.io/py/keras-crf)
+
 A more elegant and convenient CRF built on tensorflow-addons.
 
 
