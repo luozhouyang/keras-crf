@@ -60,11 +60,11 @@ class CRF(tf.keras.layers.Layer):
             mask: A [batch_size, max_seq_len] boolean tensor, used to compulte sequence length in CRF layer
 
         Returns:
-            potentials: A [batch_size, max_seq_len, num_class] tensor in train phrase.
-            sequence: A [batch_size, max_seq_len, num_class] tensor of decoded sequence in predict phrase.
+            potentials: A [batch_size, max_seq_len, num_class] tensor in train phase.
+            sequence: A [batch_size, max_seq_len, num_class] tensor of decoded sequence in predict phase.
         """
         sequence, potentials, sequence_length, transitions = self.crf(inputs, mask=mask)
-        # sequence_length is computed in both train and predict phrase
+        # sequence_length is computed in both train and predict phase
         self.sequence_length = sequence_length
         if training:
             return potentials
