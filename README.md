@@ -2,6 +2,8 @@
 A more elegant and convenient CRF built on tensorflow-addons.
 
 
+> Python Compatibility is limited to [tensorflow/addons](https://github.com/tensorflow/addons), you can check the compatibility from it's home page.
+
 ## Installation
 
 ```bash
