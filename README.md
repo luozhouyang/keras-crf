@@ -22,7 +22,7 @@ Here is an example to show you how to build a CRF model easily:
 ```python
 import tensorflow as tf
 
-from keras_crf import CRF, CRFLoss, CRFCategoricalAccuracy
+from keras_crf import CRF, CRFLoss, CRFAccuracy
 
 
 sequence_input = tf.keras.layers.Input(shape=(None,), dtype=tf.int32, name='sequence_input')
@@ -35,7 +35,7 @@ outputs = crf(outputs, mask=sequence_mask)
 model = tf.keras.Model(inputs=sequence_input, outputs=outputs)
 model.compile(
     loss=CRFLoss(crf),
-    metrics=[CRFCategoricalAccuracy(crf)],
+    metrics=[CRFAccuracy(crf)],
     optimizer=tf.keras.optimizers.Adam(5e-5)
     )
 model.summary()
