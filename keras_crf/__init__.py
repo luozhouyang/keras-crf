@@ -1,4 +1,4 @@
-from .crf import CRF, CRFLoss, CRFCategoricalAccuracy
+from .crf import CRF, CRFLoss, CRFAccuracy
 
 
 __name__ = 'keras_crf'
