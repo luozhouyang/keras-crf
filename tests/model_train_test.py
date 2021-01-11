@@ -9,7 +9,7 @@ token_mapper = TokenMapper('data/vocab.txt')
 label_mapper = LabelMapper()
 
 
-class CRFTest(unittest.TestCase):
+class ModelTrainTest(unittest.TestCase):
 
     def _build_inputs(self):
         builder = ChinaPeopleDailyBuilder('data/vocab.txt')
@@ -36,10 +36,6 @@ class CRFTest(unittest.TestCase):
         )
         return model
 
-    def test_build_model(self):
-        model = self._build_model()
-        model.summary()
-
     def test_train_model(self):
         model = self._build_model()
         dataset, predict_dataset = self._build_inputs()
@@ -49,20 +45,6 @@ class CRFTest(unittest.TestCase):
         for p in preds:
             print(p)
             print(label_mapper.decode(p))
-
-    def test_tfa_crf(self):
-        crf = tfa.layers.CRF(7)
-        inputs = tf.constant([
-            [1, 2, 3, 4, 5, 6, 0, 0, 0, 0],
-            [2, 3, 4, 5, 6, 6, 7, 0, 0, 0]
-        ], dtype=tf.int32)
-        outputs = tf.keras.layers.Embedding(10, 8)(inputs)
-        outputs = tf.keras.layers.Dense(8)(outputs)
-        sequece, potentials, sequence_length, kernel = crf(outputs)
-        print(sequece)
-        print(potentials)
-        print(sequence_length)
-        print(kernel)
 
 
 if __name__ == "__main__":
