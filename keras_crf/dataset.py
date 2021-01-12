@@ -1,3 +1,5 @@
+import abc
+
 import tensorflow as tf
 
 from . import utils
@@ -66,17 +68,35 @@ class LabelMapper:
         return labels
 
 
-class ChinaPeopleDailyBuilder:
+class AbstractDatasetBuilder(abc.ABC):
 
-    def __init__(self, vocab_file, label_map=CHINA_PEOPLE_DAILY_LABELS, **kwargs):
-        self.token_encoder = TokenMapper(vocab_file)
-        self.label_encoder = LabelMapper(label_map)
-        self.pad_id = self.token_encoder.pad_id
+    def build_train_dataset(self, input_files, **kwargs):
+        raise NotImplementedError()
 
-    def build_train_dataset(self, input_files, batch_size=32, buffer_size=30000, **kwargs):
-        features, labels = read_conll_format_file(input_files)
-        features = [self.token_encoder.encode(feature) for feature in features]
-        labels = [self.label_encoder.encode(label) for label in labels]
+    def build_valid_dataset(self, input_files, **kwargs):
+        raise NotImplementedError()
+
+    def build_test_dataset(self, input_files, **kwargs):
+        raise NotImplementedError()
+
+
+class DatasetBuilder(AbstractDatasetBuilder):
+
+    def __init__(self, token_mapper, label_mapper, token_pad_id=0, label_pad_id=0, **kwargs):
+        super().__init__()
+        self.token_mapper = token_mapper
+        self.label_mapper = label_mapper
+        self.token_pad_id = token_pad_id
+        self.label_pad_id = label_pad_id
+
+    def _read_files(self, input_files, **kwargs):
+        raise NotImplementedError()
+
+    def _build_dataset(self, features, labels, buffer_size=10000, sequence_maxlen=None, **kwargs):
+        features = [self.token_mapper.encode(feature) for feature in features]
+        labels = [self.label_mapper.encode(label) for label in labels]
+        buffer_size = max(buffer_size, len(features))
+
         features = tf.ragged.constant(features, dtype=tf.int32)
         labels = tf.ragged.constant(labels, dtype=tf.int32)
         x_dataset = tf.data.Dataset.from_tensor_slices(features)
@@ -84,29 +104,75 @@ class ChinaPeopleDailyBuilder:
         y_dataset = tf.data.Dataset.from_tensor_slices(labels)
         y_dataset = y_dataset.map(lambda y: y)
         dataset = tf.data.Dataset.zip((x_dataset, y_dataset))
-        dataset = dataset.filter(lambda x, y: tf.logical_and(tf.size(x) < 512, tf.size(y) < 512))
+        # filter sequences
+        if sequence_maxlen is not None and sequence_maxlen > 0:
+            dataset = dataset.filter(lambda x, y: tf.logical_and(
+                tf.size(x) < sequence_maxlen, tf.size(y) < sequence_maxlen))
+        # shuffle dataset
         dataset = dataset.shuffle(buffer_size=buffer_size, reshuffle_each_iteration=True)
+        return dataset
+
+    def build_train_dataset(self, input_files, batch_size=32, buffer_size=10000, sequence_maxlen=None, **kwargs):
+        features, labels = self._read_files(input_files, **kwargs)
+        dataset = self._build_dataset(
+            features,
+            labels,
+            buffer_size=buffer_size,
+            sequence_maxlen=sequence_maxlen,
+            **kwargs)
         dataset = dataset.padded_batch(
             batch_size=batch_size,
             padded_shapes=([None], [None]),
-            padding_values=(self.pad_id, 0),
-        )
+            padding_values=(self.token_pad_id, self.label_pad_id))
         return dataset
 
-    def build_valid_dataset(self, input_files, batch_size=32, buffer_size=5000, **kwargs):
-        return self.build_train_dataset(input_files, batch_size=batch_size, buffer_size=buffer_size, **kwargs)
+    def build_valid_dataset(self, input_files, batch_size=32, buffer_size=10000, sequence_maxlen=None, **kwargs):
+        dataset = self.build_train_dataset(
+            input_files=input_files,
+            batch_size=batch_size,
+            buffer_size=buffer_size,
+            sequence_maxlen=sequence_maxlen,
+            **kwargs)
+        return dataset
 
-    def build_test_dataset(self, input_files, batch_size=32, **kwargs):
-        features, labels = read_conll_format_file(input_files)
-        features = [self.token_encoder.encode(feature) for feature in features]
+    def _read_predict_files(self, input_files, **kwargs):
+        raise NotImplementedError()
+
+    def _build_predict_dataset(self, features, sequence_maxlen=None, **kwargs):
+        features = [self.token_mapper.encode(feature) for feature in features]
         features = tf.ragged.constant(features)
         dataset = tf.data.Dataset.from_tensor_slices(features)
-        dataset = dataset.filter(lambda x: tf.size(x) < 512)
+        if sequence_maxlen is not None and sequence_maxlen > 0:
+            dataset = dataset.filter(lambda x: tf.size(x) < sequence_maxlen)
         dataset = dataset.map(lambda x: x)  # convert to ragged tensor to normal tensor
+        return dataset
+
+    def build_test_dataset(self, input_files, batch_size=32, sequence_maxlen=None, with_labels=True, **kwargs):
+        outputs = self._read_predict_files(input_files, with_labels, **kwargs)
+        if with_labels:
+            features, labels = outputs
+        else:
+            features, labels = outputs, None
+        dataset = self._build_predict_dataset(
+            features=features,
+            sequence_maxlen=sequence_maxlen,
+            **kwargs)
         dataset = dataset.padded_batch(
             batch_size=batch_size,
             padded_shapes=[None],
-            padding_values=self.pad_id,
-        )
-        dataset = dataset.map(lambda x: (x, None))
+            padding_values=self.token_pad_id)
+        if with_labels:
+            return dataset, labels
         return dataset
+
+
+class ChinaPeopleDailyBuilder(DatasetBuilder):
+
+    def _read_files(self, input_files, **kwargs):
+        return read_conll_format_file(input_files, **kwargs)
+
+    def _read_predict_files(self, input_files, with_labels=True, **kwargs):
+        features, labels = read_conll_format_file(input_files, **kwargs)
+        if with_labels:
+            return features, labels
+        return features
