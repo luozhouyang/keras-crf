@@ -21,16 +21,17 @@ class CRFAccuracy(MeanMetricWrapper):
 
     def __init__(self, crf, name='crf_accuracy', dtype=None, **kwargs):
         self.crf = crf
-        fn = self._categorical_accuracy
+        fn = self._accuracy
         super().__init__(fn=fn, name=name, dtype=dtype, **kwargs)
 
-    def _categorical_accuracy(self, y_true, y_pred):
-        y_pred, _ = tfa.text.crf_decode(y_pred, self.crf.chain_kernel, self.crf.sequence_length)
-        y_pred = tf.cast(y_pred, self.dtype)
-        y_true = tf.cast(y_true, self.dtype)
-        equals = tf.cast(tf.equal(y_true, y_pred), self.dtype)
+    def _accuracy(self, y_true, y_pred):
+        if len(tf.keras.backend.int_shape(y_true)) == 3:
+            y_true = tf.argmax(y_true, axis=-1)
+        pred, _ = tfa.text.crf_decode(y_pred, self.crf.chain_kernel, self.crf.sequence_length)
+        pred = tf.cast(pred, dtype=y_true.dtype)
+        equals = tf.cast(tf.equal(y_true, pred), y_true.dtype)
         if self.crf.mask is not None:
-            mask = tf.cast(self.crf.mask, self.dtype)
+            mask = tf.cast(self.crf.mask, y_true.dtype)
             equals = equals * mask
             return tf.reduce_sum(equals) / tf.reduce_sum(mask)
         return tf.reduce_mean(equals)
@@ -53,6 +54,7 @@ class CRF(tf.keras.layers.Layer):
             boundary_initializer=boundary_initializer,
             use_kernel=use_kernel,
             **kwargs)
+        self.num_class = units
         self.chain_kernel = self.crf.chain_kernel
         # record sequence length to compute loss
         self.sequence_length = None
@@ -76,6 +78,5 @@ class CRF(tf.keras.layers.Layer):
         # save mask, which is needed to compute accuracy
         self.mask = mask
 
-        if training:
-            return potentials
-        return sequence
+        sequence = tf.cast(tf.one_hot(sequence, self.num_class), dtype=self.dtype)
+        return tf.keras.backend.in_train_phase(potentials, sequence)
