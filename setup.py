@@ -5,7 +5,7 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name="keras_crf",
-    version="0.0.3",
+    version="0.0.4",
     description="A more elegant and convenient CRF built on tensorflow-addons.",
     long_description=long_description,
     long_description_content_type="text/markdown",
@@ -16,7 +16,8 @@ setuptools.setup(
     include_package_data=True,
     install_requires=[
         'tensorflow',
-        'tensorflow-addons'
+        'tensorflow-addons',
+        'seqeval'
     ],
     extras_require={
         
