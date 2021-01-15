@@ -2,7 +2,7 @@ import unittest
 
 import tensorflow as tf
 import tensorflow_addons as tfa
-from keras_crf.crf import CRF, CRFAccuracy, CRFLoss
+from keras_crf.crf import CRF
 
 
 class ModelBuildTest(unittest.TestCase):
@@ -17,8 +17,8 @@ class ModelBuildTest(unittest.TestCase):
         outputs = crf(outputs, mask=sequence_mask)
         model = tf.keras.Model(inputs=sequence_input, outputs=outputs)
         model.compile(
-            loss=CRFLoss(crf),
-            metrics=[CRFAccuracy(crf)],
+            loss=crf.neg_log_likelihood,
+            metrics=[crf.accuracy],
             optimizer=tf.keras.optimizers.Adam(4e-5)
         )
         return model
