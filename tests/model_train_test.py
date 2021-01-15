@@ -5,7 +5,7 @@ import numpy as np
 import tensorflow as tf
 import tensorflow_addons as tfa
 from keras_crf.callbacks import EvaluateCallback
-from keras_crf.crf import CRF, CRFAccuracy, CRFLoss
+from keras_crf.crf import CRF
 from keras_crf.dataset import ChinaPeopleDailyBuilder, LabelMapper, TokenMapper
 
 token_mapper = TokenMapper('data/vocab.txt')
@@ -18,7 +18,7 @@ class ModelTrainTest(unittest.TestCase):
 
     def _build_inputs(self):
         builder = ChinaPeopleDailyBuilder(token_mapper, label_mapper)
-        train_dataset = builder.build_valid_dataset(os.path.join(DATADIR, 'example.train'))
+        train_dataset = builder.build_valid_dataset(os.path.join(DATADIR, 'example.dev'))
         # x = ['相', '比', '之', '下', '，', '青', '岛', '海', '牛', '队', '和', '广', '州', '松',
         #      '木', '队', '的', '雨', '中', '之', '战', '虽', '然', '也', '是', '0', ':', '0']
         # tokens = token_mapper.encode(x)
@@ -36,10 +36,13 @@ class ModelTrainTest(unittest.TestCase):
         outputs = crf(outputs, mask=sequence_mask)
         model = tf.keras.Model(inputs=sequence_input, outputs=outputs)
         model.compile(
-            loss=CRFLoss(crf),
-            metrics=[CRFAccuracy(crf)],
+            loss=crf.neg_log_likelihood,
+            metrics=[
+                crf.accuracy
+            ],
             optimizer=tf.keras.optimizers.Adam(4e-5)
         )
+        model.summary()
         return model
 
     def test_train_model(self):
@@ -47,7 +50,9 @@ class ModelTrainTest(unittest.TestCase):
         dataset, predict_dataset, labels = self._build_inputs()
         model.fit(
             dataset,
-            steps_per_epoch=200,
+            steps_per_epoch=10,
+            epochs=2,
+            validation_data=dataset,
             callbacks=[
                 EvaluateCallback(token_mapper, label_mapper, os.path.join(DATADIR, 'example.dev')),
             ])
