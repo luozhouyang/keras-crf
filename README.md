@@ -22,7 +22,7 @@ Here is an example to show you how to build a CRF model easily:
 ```python
 import tensorflow as tf
 
-from keras_crf import CRF, CRFLoss, CRFAccuracy
+from keras_crf import CRF
 
 
 sequence_input = tf.keras.layers.Input(shape=(None,), dtype=tf.int32, name='sequence_input')
@@ -34,8 +34,8 @@ crf = CRF(7)
 outputs = crf(outputs, mask=sequence_mask)
 model = tf.keras.Model(inputs=sequence_input, outputs=outputs)
 model.compile(
-    loss=CRFLoss(crf),
-    metrics=[CRFAccuracy(crf)],
+    loss=crf.neg_log_likelihood,
+    metrics=[crf.accuracy],
     optimizer=tf.keras.optimizers.Adam(5e-5)
     )
 model.summary()
@@ -45,19 +45,22 @@ The model summary:
 
 ```bash
 Model: "functional_1"
-_________________________________________________________________
-Layer (type)                 Output Shape              Param #   
-=================================================================
-sequence_input (InputLayer)  [(None, None)]            0         
-_________________________________________________________________
-embedding (Embedding)        (None, None, 128)         12800     
-_________________________________________________________________
-dense (Dense)                (None, None, 256)         33024     
-_________________________________________________________________
-crf (CRF)                    (None, None)              1862      
-=================================================================
+__________________________________________________________________________________________________
+Layer (type)                    Output Shape         Param #     Connected to                     
+==================================================================================================
+sequence_input (InputLayer)     [(None, None)]       0                                            
+__________________________________________________________________________________________________
+embedding (Embedding)           (None, None, 128)    12800       sequence_input[0][0]             
+__________________________________________________________________________________________________
+dense (Dense)                   (None, None, 256)    33024       embedding[0][0]                  
+__________________________________________________________________________________________________
+lambda (Lambda)                 (None, None)         0           sequence_input[0][0]             
+__________________________________________________________________________________________________
+crf (CRF)                       (None, None, 7)      1862        dense[0][0]                      
+                                                                 lambda[0][0]                     
+==================================================================================================
 Total params: 47,686
 Trainable params: 47,686
 Non-trainable params: 0
-_________________________________________________________________
+__________________________________________________________________________________________________
 ```
