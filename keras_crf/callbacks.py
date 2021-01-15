@@ -46,5 +46,5 @@ class EvaluateCallback(tf.keras.callbacks.Callback):
             y_pred.append(tags)
         report = classification_report(y_true, y_pred)
         print()
-        print('reports of epoch {}\n'.format(epoch))
+        print('reports of epoch {}\n'.format(epoch + 1))
         print(report)
