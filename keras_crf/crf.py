@@ -2,6 +2,9 @@ import tensorflow as tf
 import tensorflow_addons as tfa
 
 
+TRAINING_MODE = 'training'
+PREDICTION_MODE = 'prediction'
+
 class CRF(tf.keras.layers.Layer):
 
     def __init__(self,
@@ -24,8 +27,9 @@ class CRF(tf.keras.layers.Layer):
         # record sequence length to compute loss
         self.sequence_length = None
         self.mask = None
+        self.mode = TRAINING_MODE
 
-    def call(self, inputs, mask=None):
+    def call(self, inputs, training=None, mask=None):
         """Forward pass.
 
         Args:
@@ -36,6 +40,7 @@ class CRF(tf.keras.layers.Layer):
             potentials: A [batch_size, max_seq_len, units] tensor in train phase.
             sequence: A [batch_size, max_seq_len, units] tensor of decoded sequence in predict phase.
         """
+        self.mode = TRAINING_MODE if training is True else PREDICTION_MODE
         sequence, potentials, sequence_length, transitions = self.crf(inputs, mask=mask)
         # sequence_length is computed in both train and predict phase
         self.sequence_length = sequence_length
@@ -48,7 +53,10 @@ class CRF(tf.keras.layers.Layer):
     def accuracy(self, y_true, y_pred):
         if len(tf.keras.backend.int_shape(y_true)) == 3:
             y_true = tf.argmax(y_true, axis=-1)
-        y_pred, _ = tfa.text.crf_decode(y_pred, self.chain_kernel, self.sequence_length)
+        if self.mode == PREDICTION_MODE:
+            y_pred = tf.argmax(y_pred, axis=-1)
+        else:
+            y_pred, _ = tfa.text.crf_decode(y_pred, self.chain_kernel, self.sequence_length)
         y_pred = tf.cast(y_pred, dtype=y_true.dtype)
         equals = tf.cast(tf.equal(y_true, y_pred), y_true.dtype)
         if self.mask is not None:

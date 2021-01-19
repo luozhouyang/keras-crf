@@ -18,7 +18,7 @@ class ModelTrainTest(unittest.TestCase):
 
     def _build_inputs(self):
         builder = ChinaPeopleDailyBuilder(token_mapper, label_mapper)
-        train_dataset = builder.build_valid_dataset(os.path.join(DATADIR, 'example.dev'))
+        train_dataset = builder.build_valid_dataset(os.path.join(DATADIR, 'example.train'))
         # x = ['相', '比', '之', '下', '，', '青', '岛', '海', '牛', '队', '和', '广', '州', '松',
         #      '木', '队', '的', '雨', '中', '之', '战', '虽', '然', '也', '是', '0', ':', '0']
         # tokens = token_mapper.encode(x)
@@ -50,8 +50,8 @@ class ModelTrainTest(unittest.TestCase):
         dataset, predict_dataset, labels = self._build_inputs()
         model.fit(
             dataset,
-            steps_per_epoch=10,
-            epochs=2,
+            steps_per_epoch=100,
+            epochs=10,
             validation_data=dataset,
             callbacks=[
                 EvaluateCallback(token_mapper, label_mapper, os.path.join(DATADIR, 'example.dev')),
