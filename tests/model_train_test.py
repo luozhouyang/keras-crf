@@ -6,6 +6,7 @@ import tensorflow as tf
 import tensorflow_addons as tfa
 from keras_crf.callbacks import EvaluateCallback
 from keras_crf.crf import CRF
+from keras_crf.crf_model import CRFModel
 from keras_crf.dataset import ChinaPeopleDailyBuilder, LabelMapper, TokenMapper
 
 token_mapper = TokenMapper('data/vocab.txt')
@@ -38,7 +39,7 @@ class ModelTrainTest(unittest.TestCase):
         model.compile(
             loss=crf.neg_log_likelihood,
             metrics=[
-                crf.accuracy
+                'acc'
             ],
             optimizer=tf.keras.optimizers.Adam(4e-5)
         )
@@ -65,6 +66,32 @@ class ModelTrainTest(unittest.TestCase):
             print(label_mapper.decode(example))
             print()
 
+    def test_train_crf_model(self):
+        sequence_input = tf.keras.layers.Input(shape=(None,), dtype=tf.int32, name='sequence_input')
+        outputs = tf.keras.layers.Embedding(21128, 128)(sequence_input)
+        outputs = tf.keras.layers.Dense(256)(outputs)
+        base = tf.keras.Model(inputs=sequence_input, outputs=outputs)
+        model = CRFModel(base, 5)
+        # model.build(tf.TensorShape([None, 256]))
+        model.compile(optimizer=tf.keras.optimizers.Adam(3e-5), metrics=['acc'])
+
+        dataset, predict_dataset, labels = self._build_inputs()
+        model.fit(
+            dataset,
+            steps_per_epoch=100,
+            epochs=10,
+            validation_data=dataset,
+            callbacks=[
+                EvaluateCallback(token_mapper, label_mapper, os.path.join(DATADIR, 'example.dev')),
+            ])
+
+        preds = model.predict(predict_dataset, steps=1)
+        for idx, p in enumerate(preds):
+            # print(p)
+            example = np.argmax(p, axis=-1).tolist()[:len(labels[idx])]
+            print(labels[idx])
+            print(label_mapper.decode(example))
+            print()
 
 if __name__ == "__main__":
     unittest.main()
