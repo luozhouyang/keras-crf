@@ -30,8 +30,8 @@ outputs = tf.keras.layers.Embedding(100, 128)(sequence_input)
 outputs = tf.keras.layers.Dense(256)(outputs)
 base = tf.keras.Model(inputs=sequence_input, outputs=outputs)
 
-# build CRFModel, 7 is num of tags
-model = CRFModel(base, 7)
+# build CRFModel, 5 is num of tags
+model = CRFModel(base, 5)
 
 # no need to specify a loss for CRFModel, model will compute crf loss by itself
 model.compile(
