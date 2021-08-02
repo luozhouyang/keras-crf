@@ -26,7 +26,7 @@ from keras_crf import CRFModel
 
 # build backbone model, you can use large models like BERT
 sequence_input = tf.keras.layers.Input(shape=(None,), dtype=tf.int32, name='sequence_input')
-outputs = tf.keras.layers.Embedding(100, 128)(sequence_input)
+outputs = tf.keras.layers.Embedding(21128, 128)(sequence_input)
 outputs = tf.keras.layers.Dense(256)(outputs)
 base = tf.keras.Model(inputs=sequence_input, outputs=outputs)
 
@@ -38,27 +38,37 @@ model.compile(
     optimizer=tf.keras.optimizers.Adam(3e-4)
     metrics=['acc'],
     )
+model.summary()
+
 # you can now train this model
 model.fit(dataset, epochs=10, callbacks=None)
-
-# or summary the model
-model.build(tf.TensorShape([None, 256]))
-model.summary()
 ```
 
 The model summary:
 
 ```bash
 Model: "crf_model"
-_________________________________________________________________
-Layer (type)                 Output Shape              Param #   
-=================================================================
-model (Functional)           (None, None, 256)         2737408   
-_________________________________________________________________
-crf (CRF)                    multiple                  1320      
-=================================================================
+__________________________________________________________________________________________________
+Layer (type)                    Output Shape         Param #     Connected to                     
+==================================================================================================
+sequence_input (InputLayer)     [(None, None)]       0                                            
+__________________________________________________________________________________________________
+embedding (Embedding)           (None, None, 128)    2704384     sequence_input[0][0]             
+__________________________________________________________________________________________________
+dense (Dense)                   (None, None, 256)    33024       embedding[0][0]                  
+__________________________________________________________________________________________________
+crf (CRF)                       [(None, None), (None 1320        dense[0][0]                      
+__________________________________________________________________________________________________
+decode_sequence (Lambda)        (None, None)         0           crf[0][0]                        
+__________________________________________________________________________________________________
+potentials (Lambda)             (None, None, 5)      0           crf[0][1]                        
+__________________________________________________________________________________________________
+sequence_length (Lambda)        (None,)              0           crf[0][2]                        
+__________________________________________________________________________________________________
+kernel (Lambda)                 (5, 5)               0           crf[0][3]                        
+==================================================================================================
 Total params: 2,738,728
 Trainable params: 2,738,728
 Non-trainable params: 0
-_________________________________________________________________
+__________________________________________________________________________________________________
 ```
