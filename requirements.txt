@@ -1,3 +1,2 @@
 tensorflow
 tensorflow-addons
-seqeval
