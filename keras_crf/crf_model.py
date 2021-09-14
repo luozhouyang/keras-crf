@@ -44,6 +44,8 @@ class CRFModel(tf.keras.Model):
 
     def train_step(self, data):
         x, y, sample_weight = _unpack_data(data)
+        if isinstance(y, dict):
+            y = list(y.values())[0]
         with tf.GradientTape() as tape:
             decode_sequence, potentials, sequence_length, kernel = self(x, training=True)
             crf_loss = -tfa.text.crf_log_likelihood(potentials, y, sequence_length, kernel)[0]
@@ -63,6 +65,8 @@ class CRFModel(tf.keras.Model):
 
     def test_step(self, data):
         x, y, sample_weight = _unpack_data(data)
+        if isinstance(y, dict):
+            y = list(y.values())[0]
         decode_sequence, potentials, sequence_length, kernel = self(x, training=False)
         crf_loss = -tfa.text.crf_log_likelihood(potentials, y, sequence_length, kernel)[0]
         if sample_weight is not None:
